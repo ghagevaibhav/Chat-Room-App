@@ -1,6 +1,6 @@
 import express from 'express';
 import { JWT_SECRET } from "@repo/backend-common/index"
-import bcrypt, { hash } from "bcrypt"
+import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 
 const userRouter: express.Router = express.Router();
