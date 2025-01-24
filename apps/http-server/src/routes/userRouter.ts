@@ -1,5 +1,4 @@
 import express from 'express';
-import { JWT_SECRET } from "@repo/backend-common/index"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 
@@ -7,6 +6,9 @@ const userRouter: express.Router = express.Router();
 
 userRouter.post('/signup', async (req, res) => {
     const { CreateUserSchema } = await import('@repo/common/index');
+    const { JWT_SECRET } = await import("@repo/backend-common/index");
+    const { prisma } = await import('@repo/db/index');
+    
     const parsedData = CreateUserSchema.safeParse(req.body);
 
     if (!parsedData.success) {
@@ -16,7 +18,6 @@ userRouter.post('/signup', async (req, res) => {
     }
 
     try {
-        const { prisma } = await import('@repo/db/index');
         const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
         const user = await prisma.user.create({
             data: {
@@ -32,14 +33,14 @@ userRouter.post('/signup', async (req, res) => {
             token,
             message: 'User Signed Up Successfully',
         });
-    } catch (error: any) {
+    } catch (error: any) {  
         console.error(error);
         if (error.code === 'P2002') {
             res.status(409).json({ message: 'User already exists' });
             return
         }
 
-        res.status(500).json({ message: 'Internal Server Error' });
+        res.status(500).json({ message: 'Internal Server Error  maki    ' });
     }
 });
 
