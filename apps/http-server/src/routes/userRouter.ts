@@ -1,13 +1,13 @@
 import express from 'express';
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+const { CreateUserSchema, SigninSchema } = await import('@repo/common/index');
+const { JWT_SECRET } = await import("@repo/backend-common/index");
+const { prisma } = await import('@repo/db/index');
 
 const userRouter: express.Router = express.Router();
 
 userRouter.post('/signup', async (req, res) => {
-    const { CreateUserSchema } = await import('@repo/common/index');
-    const { JWT_SECRET } = await import("@repo/backend-common/index");
-    const { prisma } = await import('@repo/db/index');
     
     const parsedData = CreateUserSchema.safeParse(req.body);
 
@@ -43,6 +43,15 @@ userRouter.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error  maki    ' });
     }
 });
+
+userRouter.post('/signin', async (req, res) => {
+    const parsedData = SigninSchema.safeParse(req.body);
+    if(!parsedData.success) {
+        console.error(parsedData.error);
+        res.status(400).json({ message: 'Invalid input data' });
+        return
+    }
+})
 
 
 export default userRouter;

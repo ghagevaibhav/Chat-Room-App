@@ -1,6 +1,6 @@
 import express from 'express';
-import userRouter from './userRouter';
-import roomRouter from './roomRouter';
+import userRouter from './userRouter.js';
+import roomRouter from './roomRouter.js';
 
 const router: express.Router = express.Router();
 
