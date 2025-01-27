@@ -18,40 +18,65 @@ userRouter.post('/signup', async (req, res) => {
     }
 
     try {
-        const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
-        const user = await prisma.user.create({
-            data: {
-                email: parsedData.data.username,
-                password: hashedPassword,
-                name: parsedData.data.name,
-            },
-        });
-        const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(201).json({
-            userId: user.id,
-            token,
-            message: 'User Signed Up Successfully',
+        bcrypt.hash(parsedData.data.password, 10, async (err, hashedPassword) =>{
+            const user = await prisma.user.create({
+                data: {
+                    email: parsedData.data.username,
+                    password: hashedPassword,
+                    name: parsedData.data.name,
+                },
+            });
+            const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
+            
+            res.status(201).json({
+                userId: user.id,
+                token,
+                hashedPassword,
+                message: 'User Signed Up Successfully',
+            });
         });
     } catch (error: any) {  
         console.error(error);
-        if (error.code === 'P2002') {
-            res.status(409).json({ message: 'User already exists' });
-            return
-        }
-
-        res.status(500).json({ message: 'Internal Server Error  maki    ' });
+        res.status(500).json({ message: 'Internal Server Error' });
+        return;
     }
 });
-
 userRouter.post('/signin', async (req, res) => {
     const parsedData = SigninSchema.safeParse(req.body);
-    if(!parsedData.success) {
+    if (!parsedData.success) {
         console.error(parsedData.error);
         res.status(400).json({ message: 'Invalid input data' });
-        return
+        return;
     }
-})
+
+    try {
+        const { username, password: enteredPassword } = parsedData.data;
+
+        const user = await prisma.user.findUnique({
+            where: { email: username }
+        });
+        if (!user || !user.password) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+
+        const same = await bcrypt.compare(enteredPassword, user.password);
+        if (!same) {
+            res.status(401).json({ message: 'Invalid password' });
+            return;
+        }
+
+        const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
+        res.json({
+            userId: user.id,
+            token: token,
+            message: 'User Logged In Successfully'
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 
 export default userRouter;
