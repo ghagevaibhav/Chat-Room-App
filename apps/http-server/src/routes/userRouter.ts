@@ -61,9 +61,9 @@
                 return;
             }
 
-            const same = await bcrypt.compare(password, user.password);
+            const same = await bcrypt.compare(password.toString(), user.password.toString());
             if (!same) {
-                res.status(401).json({ message: 'Invalid password' });
+                res.status(401).json({ message: 'Invalid Password', same: same.toString()});
                 return;
             }
 
