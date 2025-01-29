@@ -1,7 +1,7 @@
 import { WebSocket, WebSocketServer } from "ws";
 import jwt, { decode } from "jsonwebtoken";
-import { JWT_SECRET } from "@repo/backend-common/index";
-import { prisma } from "@repo/db/index";
+const { JWT_SECRET } = await import("@repo/backend-common/index");
+const { prisma } = await import("@repo/db/index");
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -12,17 +12,23 @@ interface User {
 }
 
 const users: User[] = [];
+console.log(users);
 
 function checkUser(token: string): string | null {
-  const decoded = jwt.verify(token, JWT_SECRET);
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-  if (typeof decoded === "string") {
+    if (typeof decoded === "string") {
+      return null;
+    }
+    if (!decoded || !decoded.id) {
+      return null;
+    }
+    return decoded.id;
+  } catch (e) {
+    console.error(e);
     return null;
   }
-  if (!decoded || !decoded.id) {
-    return null;
-  }
-  return decoded.id;
 }
 
 wss.on("connection", function connection(ws: WebSocket, req: Request) {
@@ -48,9 +54,10 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
 
     if (parsedData.type === "join_room") {
       const user = users.find((x) => x.ws === ws);
+
       const room = await prisma.room.findUnique({
         where: {
-          id: parsedData.roomId,
+          slug: parsedData.roomId,
         },
       });
       if (!room) {
@@ -63,20 +70,33 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
     if (parsedData.type === "leave_room") {
       const user = users.find((x) => x.ws === ws);
       if (!user) return;
-      const roomIndex = user.rooms.findIndex((x) => x === parsedData.roomId);
-      if (roomIndex) {
-        user.rooms.splice(roomIndex, 1);
-      }
+      // Filter to keep all rooms EXCEPT the one we're leaving
+      user.rooms = user.rooms.filter((x) => x !== parsedData.roomId);
+      ws.send(JSON.stringify("Left room"));
     }
 
     if (parsedData.type === "chat") {
-        const room = parsedData.roomId;
-        const message = parsedData.message;
-        users.forEach((user) => {
-            if(user.rooms.includes(room)){
-                user.ws.send(JSON.stringify({ type: "chat", message, room }));
-            }
-        })
+      const room = parsedData.roomId;
+      const message = parsedData.message;
+
+      // store the message in the database
+      await prisma.chat.create({
+        data: {
+          message, 
+          roomId: room,
+          userId
+        },
+      });
+
+      // check if the user has access to the room
+      const user = users.find((x) => x.ws === ws);
+      if (!user || !user.rooms.includes(room))
+        return ws.send(JSON.stringify("Unauthorized"));
+      users.forEach((user) => {
+        if (user.rooms.includes(room)) {
+          user.ws.send(JSON.stringify({ type: "chat", message, room }));
+        }
+      });
     }
   });
 });
