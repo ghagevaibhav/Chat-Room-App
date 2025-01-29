@@ -60,6 +60,8 @@
                 res.status(404).json({ message: 'User not found' });
                 return;
             }
+            console.log('Input password:', password);
+            console.log('Stored hashed password:', user.password);
 
             const same = await bcrypt.compare(password.toString(), user.password.toString());
             if (!same) {

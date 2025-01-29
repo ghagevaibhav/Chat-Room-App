@@ -1,3 +1,4 @@
+import { JWT_SECRET } from "@repo/backend-common/index";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
@@ -11,7 +12,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
             })
             return
         }
-        jwt.verify(token, process.env.SCERET!, function (err, data) {
+        jwt.verify(token, JWT_SECRET, function (err, data) {
             if (err) {
                 return res.status(401).json({
                     message: "Unauthorized",
@@ -19,7 +20,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
                 })
             }
             if (typeof data !== "string") {
-                req.userId = data?.userId
+                req.userId = data?.id;
+                console.log(data)
             }
             next()
         })
