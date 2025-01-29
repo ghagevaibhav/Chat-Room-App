@@ -2,6 +2,7 @@ import express from 'express';
 import { authMiddleware } from '../middleware/middleware.js';
 import { CreateRoomSchema } from '@repo/common/index';
 import { prisma } from '@repo/db/index';
+import router from './routes.js';
 
 const roomRouter: express.Router = express.Router();
 
@@ -47,6 +48,23 @@ roomRouter.get('/chats/:roomId', async (req, res) => {
             }
         })
         res.json(messages);
+    }
+    catch(error){
+        console.error(error)
+        res.status(500).json({ message: 'Something went wrong server side' });
+    }
+})
+
+roomRouter.get('/:slug', async (req, res) => {
+    const slug = req.params.slug;
+    try{
+        const room = await prisma.room.findUnique({
+            where: {
+                slug: slug
+            }
+        })
+        res.json(room?.id);
+        return;
     }
     catch(error){
         console.error(error)
