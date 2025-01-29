@@ -32,6 +32,7 @@ function checkUser(token: string): string | null {
 }
 
 wss.on("connection", function connection(ws: WebSocket, req: Request) {
+  console.log("connected");
   const url = req.url;
   const queryParam = new URLSearchParams(url.split("?")[1]);
   const token = queryParam.get("token") || "";
