@@ -9,7 +9,7 @@ export const ChatRoomClient = ({
   id,
 }: {
   messages: { message: string }[];
-  id: string;
+  id: number;
 }) => {
   const [currentMessage, setCurrentMessage] = useState("");
   const [chats, setChats] = useState(messages);

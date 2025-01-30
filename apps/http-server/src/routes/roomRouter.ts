@@ -2,7 +2,6 @@ import express from 'express';
 import { authMiddleware } from '../middleware/middleware.js';
 import { CreateRoomSchema } from '@repo/common/index';
 import { prisma } from '@repo/db/index';
-import router from './routes.js';
 
 const roomRouter: express.Router = express.Router();
 
@@ -36,18 +35,19 @@ roomRouter.post('/create', authMiddleware, async (req, res) => {
 })
 
 roomRouter.get('/chats/:roomId', async (req, res) => {
-    const roomId = Number(req.params.roomId);
+    const roomId = req.params.roomId;
     try{
         const messages = await prisma.chat.findMany({
             where: {
-                roomId: roomId
+                roomId: parseInt(roomId)
             },
             take: 50,
             orderBy: {
                 id: 'desc'
             }
         })
-        res.json(messages);
+        res.json({messages : messages});
+        return;
     }
     catch(error){
         console.error(error)
@@ -63,7 +63,7 @@ roomRouter.get('/:slug', async (req, res) => {
                 slug: slug
             }
         })
-        res.json(room?.id);
+        res.json({id: room?.id});
         return;
     }
     catch(error){

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from "axios";
 import { BACKEND_URL } from "../../config";
-import { ChatRoom } from "../../../components/ChatRoom";
+import ChatRoom from "../../../components/ChatRoom";
 
 async function getRoomId(slug: string) {
   const response = await axios.get(`${BACKEND_URL}/room/${slug}`);
   const roomId = response.data.id;
+  console.log(response.data);
   return roomId;
 }
 
@@ -16,7 +17,7 @@ export default async function ChatRoomPage({
     slug: string;
   };
 }) {
-  const slug = await params.slug;
+  const slug = (await params).slug;
   // fetch room data using slug and render it here.
   const roomId = await getRoomId(slug);
 

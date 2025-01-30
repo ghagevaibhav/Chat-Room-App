@@ -91,10 +91,17 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
 
       // check if the user has access to the room
       const user = users.find((x) => x.ws === ws);
-      if (!user || !user.rooms.includes(room))
+      if (!user)
         return ws.send(JSON.stringify("Unauthorized"));
+      const response = await prisma.room.findUnique({
+        where: {
+          id: room,
+        },
+      })
+      const roomSlug = response?.slug;
+      if(!roomSlug) return;
       users.forEach((user) => {
-        if (user.rooms.includes(room)) {
+        if (user.rooms.includes(roomSlug)) {
           user.ws.send(JSON.stringify({ type: "chat", message, room }));
         }
       });
