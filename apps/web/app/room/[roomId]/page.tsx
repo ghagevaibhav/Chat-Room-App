@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from "axios";
 import { BACKEND_URL } from "../../config";
 import ChatRoom from "../../../components/ChatRoom";

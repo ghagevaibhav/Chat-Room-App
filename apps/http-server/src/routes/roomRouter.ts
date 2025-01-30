@@ -36,7 +36,7 @@ roomRouter.post('/create', authMiddleware, async (req, res) => {
 
 roomRouter.get('/chats/:roomId', async (req, res) => {
     const roomId = req.params.roomId;
-    try{
+    try {
         const messages = await prisma.chat.findMany({
             where: {
                 roomId: parseInt(roomId)
@@ -46,10 +46,10 @@ roomRouter.get('/chats/:roomId', async (req, res) => {
                 id: 'desc'
             }
         })
-        res.json({messages : messages});
+        res.json({messages: messages});
         return;
     }
-    catch(error){
+    catch(error) {
         console.error(error)
         res.status(500).json({ message: 'Something went wrong server side' });
     }
