@@ -9,7 +9,7 @@ export const ChatRoomClient = ({
   id,
 }: {
   messages: { message: string }[];
-  id: number;
+  id: string;
 }) => {
   const [currentMessage, setCurrentMessage] = useState("");
   const [chats, setChats] = useState(messages);
@@ -58,7 +58,7 @@ export const ChatRoomClient = ({
           );
           setCurrentMessage("");
         }}
-      ></button>
+      >Send Message</button>
     </div>
   );
 };

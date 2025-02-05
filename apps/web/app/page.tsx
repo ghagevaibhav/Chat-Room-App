@@ -27,7 +27,7 @@ export default function Home() {
             setRoomId(e.target.value);
           }} 
           type="text"
-          placeholder="Room Id"
+          placeholder="Room Slug"
         />
 
         <button
