@@ -39,7 +39,7 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
   const userId = checkUser(token);
 
   if (!userId) {
-    ws.send("Unauthorized");
+    ws.send("Unauthorized people");
     ws.close();
     return;
   }
