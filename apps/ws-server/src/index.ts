@@ -50,6 +50,12 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
     rooms: [],
   });
 
+  ws.on('close', () => {
+    const user = users.find((x) => x.ws === ws);
+    if(!user) return;
+    
+  })
+
   ws.on("message", async function message(data: string) {
     const parsedData = JSON.parse(data);
 
@@ -80,7 +86,7 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
       const room = parsedData.roomId;
       const message = parsedData.message;
 
-      // store the message in the database
+      // store the message in the database for later retrieval
       await prisma.chat.create({
         data: {
           message, 
