@@ -39,7 +39,7 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
   const userId = checkUser(token);
 
   if (!userId) {
-    ws.send("Unauthorized people"); 
+    ws.send("Unauthorized people");
     ws.close();
     return;
   }
@@ -52,18 +52,23 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
 
   ws.on("message", async function message(data: string) {
     const parsedData = JSON.parse(data);
-
+    console.log("Parsed Data", parsedData);
     if (parsedData.type === "join_room") {
+      // Find the user in the users array that matches the current WebSocket connection
       const user = users.find((x) => x.ws === ws);
 
-      const room = await prisma.room.findUnique({
-        where: {
-          slug: parsedData.roomId,
-        },
-      });
-      if (!room) {
-        ws.send("Room not found");
-        return;
+      try {
+        const room = await prisma.room.findUnique({
+          where: {
+            id: parsedData.roomId,
+          },
+        });
+        if (!room) {
+          ws.send("Room not found");
+          return;
+        }
+      } catch (err) {
+        console.error("Error here", err);
       }
       user?.rooms.push(parsedData.roomId);
     }
@@ -82,7 +87,7 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
       // check if the user has access to the room first
       const user = users.find((x) => x.ws === ws);
       if (!user) return ws.send(JSON.stringify("Unauthorized"));
-      
+
       const response = await prisma.room.findUnique({
         where: {
           id: room,
