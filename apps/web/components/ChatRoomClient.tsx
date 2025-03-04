@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,7 +11,7 @@ export const ChatRoomClient = ({
   id: string;
 }) => {
   const [currentMessage, setCurrentMessage] = useState("");
-  const [chats, setChats] = useState(messages);
+  const [, setChats] = useState(messages);
   const { socket, loading } = useSocket();
 
   useEffect(() => {
