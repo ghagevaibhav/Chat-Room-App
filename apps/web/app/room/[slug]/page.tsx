@@ -14,7 +14,7 @@ export default async function ChatRoomPage({
   params:{
     slug: string;
   }
-}) {
+}): Promise<JSX.Element> {
   const slug = (await params).slug;
   const roomId = await getRoomId(slug);
 
