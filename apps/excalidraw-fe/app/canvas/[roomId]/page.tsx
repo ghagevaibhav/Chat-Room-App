@@ -1,49 +1,61 @@
 "use client";
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef } from "react";
 
-export default function Canvas () {
+export default function Canvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "rgba(0, 0, 0)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    useEffect(() => {
-        if(canvasRef.current) {
-            const canvas = canvasRef.current 
-            const ctx = canvas.getContext("2d")
+    let clicked = false;
+    let startX = 0, startY = 0;
 
-            let clicked = false;
-            let startX = 0, startY = 0;
+    const handleMouseDown = (e: MouseEvent) => {
+      clicked = true;
+      startX = e.clientX;
+      startY = e.clientY;
+    };
 
-            if(!ctx) return;
+    const handleMouseUp = (e: MouseEvent) => {
+      clicked = false;
+      console.log(e.clientX, e.clientY);
+    };
 
-            canvas.addEventListener("mousedown", (e) => {
-                clicked = true;
-                startX = e.clientX;
-                startY = e.clientY;
-            })
+    const handleMouseMove = (e: MouseEvent) => {
+      if (clicked) {
+        const width = e.clientX - startX;
+        const height = e.clientY - startY;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "rgba(255, 255, 255)"
+        ctx.strokeRect(startX, startY, width, height);
+      }
+    };
 
-            canvas.addEventListener("mouseup", (e) => {
-                clicked = false;
-                console.log(e.clientX, e.clientY)
-            })
+    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("mousemove", handleMouseMove);
 
-            canvas.addEventListener("mousemove", (e) => {
-                if(clicked) {
-                    const width = e.clientX - startX;
-                    const height = e.clientY - startX;
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.strokeRect(startX, startY, width, height);
-                }
-            })
+    // Cleanup event listeners when the component unmounts
+    return () => {
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
 
-        }
-    }, [canvasRef])
-
-    return <>
-        <div> 
-            <canvas ref={canvasRef} height={1000} width={1000} color="black" className="w-screen h-screen bg-black-100">
-
-            </canvas>
-        </div>
-    </>
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute top-0 left-0 bg-black"
+    />
+  );
 }
