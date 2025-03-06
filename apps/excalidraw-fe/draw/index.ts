@@ -126,7 +126,7 @@ async function getExistingShapes(roomId: string) {
 
   const shapes = messages.map((x: { message: string }) => {
     const messageData = JSON.parse(x.message);
-    return messageData.shape; // Extract the shape from the message data
-  }).filter(Boolean); // Filter out any null/undefined values
+    return messageData.shape;
+  }).filter(Boolean); // filter null vals
   return shapes;
 }

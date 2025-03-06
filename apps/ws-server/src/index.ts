@@ -54,7 +54,7 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
     const parsedData = JSON.parse(data);
     console.log("Parsed Data", parsedData);
     if (parsedData.type === "join_room") {
-      // Find the user in the users array that matches the current WebSocket connection
+      // find the user in the users array that matches the current WebSocket connection
       const user = users.find((x) => x.ws === ws);
 
       try {
@@ -68,7 +68,7 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
           ws.send("Room not found");
           return;
         }
-        user?.rooms.push(roomId); // Store room ID as number
+        user?.rooms.push(roomId); // store roomid as number
       } catch (err) {
         console.error("Error here", err);
       }
@@ -106,12 +106,14 @@ wss.on("connection", function connection(ws: WebSocket, req: Request) {
       // broadcast the message to all users in the room
       users.forEach((u) => {
         if (u.rooms.includes(room)) {
-          u.ws.send(JSON.stringify({ 
-            type: "chat", 
-            message,
-            room,
-            userId // Include sender's ID
-          }));
+          u.ws.send(
+            JSON.stringify({
+              type: "chat",
+              message,
+              room,
+              userId, // include sender's ID
+            })
+          );
         }
       });
       console.log("Users", users);
