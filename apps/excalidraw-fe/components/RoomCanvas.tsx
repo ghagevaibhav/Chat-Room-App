@@ -32,7 +32,7 @@ export default function RoomCanvas({ roomId }: { roomId: string }) {
     return () => {
       ws.close();
     }
-  }, [roomId]) // Add roomId as dependency
+  }, [roomId]) // add roomId as dependency
 
   if (isConnecting) {
     return <div className="flex items-center justify-center h-screen">

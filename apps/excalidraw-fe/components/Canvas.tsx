@@ -1,5 +1,4 @@
-import initDraw from "@/draw";
-import { Socket } from "dgram";
+import initDraw from "@/Draw";
 import { useEffect, useRef } from "react";
 
 export default function Canvas({ roomId, socket }: { 
@@ -12,7 +11,14 @@ export default function Canvas({ roomId, socket }: {
     if (!canvas) return;
 
     initDraw(canvas, roomId, socket);
-  }, [canvasRef]);
+  }, [roomId, socket]); 
 
-  return <canvas ref={canvasRef} className="absolute top-0 left-0 bg-black" />;
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="absolute top-0 left-0 bg-black"
+      width="100%"
+      height="100%" 
+    />
+  );
 }
