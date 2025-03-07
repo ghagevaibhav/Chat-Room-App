@@ -3,120 +3,172 @@ import jwt from "jsonwebtoken";
 const { JWT_SECRET } = await import("@repo/backend-common/index");
 const { prisma } = await import("@repo/db/index");
 
-const wss = new WebSocketServer({ port: 8080 });
 
-interface User {
-  ws: WebSocket;
-  userId: string;
-  rooms: number[]; // Changed from string[] to number[] since we store room IDs as numbers
-}
+// singleton websocket manager
+class WebSocketManager {
+  private static instance: WebSocketManager;
+  private wss: WebSocketServer;
+  private userMap: Map<string, { ws: WebSocket; rooms: Set<number> }>;
 
-const users: User[] = [];
-console.log(users);
-
-function checkUser(token: string): string | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    if (typeof decoded === "string") {
-      return null;
-    }
-    if (!decoded || !decoded.id) {
-      return null;
-    }
-    return decoded.id;
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
-}
-
-wss.on("connection", function connection(ws: WebSocket, req: Request) {
-  console.log("connected");
-  const url = req.url;
-  const queryParam = new URLSearchParams(url.split("?")[1]);
-  const token = queryParam.get("token") || "";
-  const userId = checkUser(token);
-
-  if (!userId) {
-    ws.send("Unauthorized people");
-    ws.close();
-    return;
+  private constructor() {
+    this.wss = new WebSocketServer({ port: 8080 });
+    this.userMap = new Map();
+    this.initializeWebSocket();
   }
 
-  users.push({
-    userId,
-    ws,
-    rooms: [],
-  });
+  public static getInstance(): WebSocketManager {
+    if (!WebSocketManager.instance) {
+      WebSocketManager.instance = new WebSocketManager();
+    }
+    return WebSocketManager.instance;
+  }
 
-  ws.on("message", async function message(data: string) {
-    const parsedData = JSON.parse(data);
-    console.log("Parsed Data", parsedData);
-    if (parsedData.type === "join_room") {
-      // find the user in the users array that matches the current WebSocket connection
-      const user = users.find((x) => x.ws === ws);
-
-      try {
-        const roomId = parseInt(parsedData.roomId);
-        const room = await prisma.room.findUnique({
-          where: {
-            id: roomId,
-          },
-        });
-        if (!room) {
-          ws.send("Room not found");
-          return;
-        }
-        user?.rooms.push(roomId); // store roomid as number
-      } catch (err) {
-        console.error("Error here", err);
+  private checkUser(token: string): string | null {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (typeof decoded === "string" || !decoded?.id) {
+        return null;
       }
+      return decoded.id;
+    } catch (e) {
+      console.error("JWT verification failed:", e);
+      return null;
     }
+  }
 
-    if (parsedData.type === "leave_room") {
-      const user = users.find((x) => x.ws === ws);
-      if (!user) return "user not found";
-      const roomId = parseInt(parsedData.roomId);
-      user.rooms = user.rooms.filter((x) => x !== roomId);
-      ws.send(JSON.stringify("Left room"));
-    }
+  private async handleJoinRoom(ws: WebSocket, userId: string, roomId: number) {
+    try {
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+      });
 
-    if (parsedData.type === "chat") {
-      const room = parseInt(parsedData.roomId);
-      const message = parsedData.message;
-      // check if the user has access to the room first
-      const user = users.find((x) => x.ws === ws);
-      if (!user) return ws.send(JSON.stringify("Unauthorized"));
-
-      // Check if user has access to this room
-      if (!user.rooms.includes(room)) {
-        return ws.send(JSON.stringify("Not a member of this room"));
+      if (!room) {
+        ws.send(JSON.stringify({ error: "Room not found" }));
+        return;
       }
 
-      // store the message in the database
+      const userState = this.userMap.get(userId);
+      if (userState) {
+        userState.rooms.add(roomId);
+      }
+
+      ws.send(JSON.stringify({ type: "join_success", roomId }));
+    } catch (err) {
+      console.error("Join room error:", err);
+      ws.send(JSON.stringify({ error: "Failed to join room" }));
+    }
+  }
+
+  private handleLeaveRoom(userId: string, roomId: number) {
+    const userState = this.userMap.get(userId);
+    if (userState) {
+      userState.rooms.delete(roomId);
+      return true;
+    }
+    return false;
+  }
+
+  private async handleChat(
+    ws: WebSocket,
+    userId: string,
+    roomId: number,
+    message: string
+  ) {
+    const userState = this.userMap.get(userId);
+
+    if (!userState) {
+      ws.send(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    if (!userState.rooms.has(roomId)) {
+      ws.send(JSON.stringify({ error: "Not a member of this room" }));
+      return;
+    }
+
+    try {
+      // store message in db
       await prisma.chat.create({
         data: {
           message,
-          roomId: room,
+          roomId,
           userId,
         },
       });
 
-      // broadcast the message to all users in the room
-      users.forEach((u) => {
-        if (u.rooms.includes(room)) {
-          u.ws.send(
-            JSON.stringify({
-              type: "chat",
-              message,
-              room,
-              userId, // include sender's ID
-            })
-          );
+      // broadcast to room members
+      const chatMessage = JSON.stringify({
+        type: "chat",
+        message,
+        room: roomId,
+        userId,
+      });
+
+      this.userMap.forEach((state, uid) => {
+        if (state.rooms.has(roomId)) {
+          state.ws.send(chatMessage);
         }
       });
-      console.log("Users", users);
+    } catch (err) {
+      console.error("Chat handling error:", err);
+      ws.send(JSON.stringify({ error: "Failed to send message" }));
     }
-  });
-});
+  }
+
+  private initializeWebSocket() {
+    this.wss.on("connection", (ws: WebSocket, req: Request) => {
+      console.log("New connection established");
+
+      const url = req.url;
+      const queryParam = new URLSearchParams(url.split("?")[1]);
+      const token = queryParam.get("token") || "";
+      const userId = this.checkUser(token);
+
+      if (!userId) {
+        ws.send(JSON.stringify({ error: "Unauthorized" }));
+        ws.close();
+        return;
+      }
+
+      // init user state
+      this.userMap.set(userId, { ws, rooms: new Set() });
+
+      ws.on("message", async (data: string) => {
+        try {
+          const parsedData = JSON.parse(data);
+          const roomId = parseInt(parsedData.roomId);
+
+          switch (parsedData.type) {
+            case "join_room":
+              await this.handleJoinRoom(ws, userId, roomId);
+              break;
+
+            case "leave_room":
+              const left = this.handleLeaveRoom(userId, roomId);
+              if (left) {
+                ws.send(JSON.stringify({ type: "leave_success", roomId }));
+              }
+              break;
+
+            case "chat":
+              await this.handleChat(ws, userId, roomId, parsedData.message);
+              break;
+
+            default:
+              ws.send(JSON.stringify({ error: "Invalid message type" }));
+          }
+        } catch (err) {
+          console.error("Message handling error:", err);
+          ws.send(JSON.stringify({ error: "Invalid message format" }));
+        }
+      });
+
+      ws.on("close", () => {
+        this.userMap.delete(userId);
+      });
+    });
+  }
+}
+
+// init the websocket manager
+const wsManager = WebSocketManager.getInstance();
