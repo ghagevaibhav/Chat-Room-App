@@ -10,7 +10,7 @@ import {
   CardTitle 
 } from "@/components/ui/card"
 import { 
-  GithubIcon, 
+  Github as GithubIcon,
   GoalIcon 
 } from "lucide-react"
 import { ModeToggle } from "@/components/ui/mode-toggle"
@@ -85,14 +85,3 @@ export default function Home() {
     </main>
   )
 }
-
-// import Image from "next/image";
-
-// export default function Home() {
-//   return (
-//     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-//       Excalidraw Fe
-//     </div>
-//   );
-// }
- 
