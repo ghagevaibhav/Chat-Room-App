@@ -2,8 +2,16 @@ import express from 'express';
 import { authMiddleware } from '../middleware/middleware.js';
 import { CreateRoomSchema } from '@repo/common/index';
 import { prisma } from '@repo/db/index';
+import rateLimit from 'express-rate-limit';
 
 const roomRouter: express.Router = express.Router();
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // max 100 requests per windowMs
+});
+
+roomRouter.use(limiter);
 
 roomRouter.post('/create', authMiddleware, async (req, res) => {
     const parsedData = CreateRoomSchema.safeParse(req.body);
